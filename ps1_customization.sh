@@ -1,4 +1,4 @@
-# this code should replace the ps1 logic in your ~/.bashrc
+# put this code instead of ps1 logic in your ~/.bashrc
 
 if [ "$color_prompt" = yes ]; then
     PS1="${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\>
