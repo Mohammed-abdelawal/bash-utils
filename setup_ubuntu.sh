@@ -1,11 +1,25 @@
 #!/bin/bash
 
-# Update package list and upgrade existing packages
-sudo apt update
-sudo apt upgrade
+log_file="setup_log.txt"
 
-# Install xbindkeys for my additional mouse keys
-sudo apt install xbindkeys x11-utils xdotool xautomation
+# Function for logging
+log() {
+    echo "$(date) - $1" | tee -a "$log_file"
+}
+
+# Function to check if a package is installed
+is_package_installed() {
+    dpkg-query -l "$1" &>/dev/null
+}
+
+log "Updating package list"
+sudo apt-get update | tee -a "$log_file"
+
+log "Upgrading existing packages"
+sudo apt-get upgrade -y | tee -a "$log_file"
+
+log "Installing xbindkeys for additional mouse keys"
+sudo apt-get install -y xbindkeys x11-utils xdotool xautomation | tee -a "$log_file"
 
 content=$(cat <<'EOL'
 "xte 'keydown Control_L' 'key c' 'keyup Control_L'"
@@ -16,40 +30,93 @@ b:8
 EOL
 )
 
-# Use echo to write the content to .xbindkeysrc in the home directory of user mabdelawal
+log "Writing content to .xbindkeysrc in the home directory of user mabdelawal"
 echo "$content" > ~/.xbindkeysrc
 
+log "Restarting xbindkeys"
 killall xbindkeys
 xbindkeys
 
-
-# my folder for software projects
+log "Creating Projects folder"
 mkdir Projects
 
+log "Installing Google Cloud SDK"
+if ! is_package_installed google-cloud-sdk; then
+	sudo apt-get install apt-transport-https ca-certificates gnupg curl sudo
+	curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+	echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+	sudo apt-get update && sudo apt-get install google-cloud-cli
+else
+    log "Google Cloud SDK is already installed"
+fi
 
-# gcloud installing
-sudo apt-get install apt-transport-https ca-certificates gnupg curl sudo
-curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
-echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-sudo apt-get update && sudo apt-get install google-cloud-cli
+log "Installing pgAdmin"
+if ! is_package_installed pgadmin4-desktop; then
+    curl -fsS https://www.pgadmin.org/static/packages_pgadmin_org.pub | sudo gpg --dearmor -o /usr/share/keyrings/packages-pgadmin-org.gpg
+    sudo sh -c 'echo "deb [signed-by=/usr/share/keyrings/packages-pgadmin-org.gpg] https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/$(lsb_release -cs) pgadmin4 main" > /etc/apt/sources.list.d/pgadmin4.list && apt update'
+    sudo apt install -y pgadmin4-desktop | tee -a "$log_file"
+else
+    log "pgAdmin is already installed"
+fi
+
+log "Installing Docker and Docker Compose"
+if ! is_package_installed docker-ce; then
+    sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+    apt-cache policy docker-ce
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin | tee -a "$log_file"
+else
+    log "Docker is already installed"
+fi
+
+log "Installing Safe Eyes"
+if ! is_package_installed safeeyes; then
+    sudo add-apt-repository -y ppa:slgobinath/safeeyes
+    sudo apt update
+    sudo apt install -y safeeyes | tee -a "$log_file"
+else
+    log "Safe Eyes is already installed"
+fi
+
+log "Installing GDAL"
+if ! is_package_installed gdal-bin; then
+    sudo apt install -y gdal-bin python3-gdal | tee -a "$log_file"
+else
+    log "GDAL is already installed"
+fi
+
+log "Installing PyCharm Community Edition"
+if ! command -v pycharm-community &>/dev/null; then
+    sudo snap install pycharm-community --classic | tee -a "$log_file"
+else
+    log "PyCharm Community Edition is already installed"
+fi
+
+log "Installing Visual Studio Code"
+if ! command -v code &>/dev/null; then
+    sudo snap install code --classic | tee -a "$log_file"
+else
+    log "Visual Studio Code is already installed"
+fi
 
 
-# pg admin
-curl -fsS https://www.pgadmin.org/static/packages_pgadmin_org.pub | sudo gpg --dearmor -o /usr/share/keyrings/packages-pgadmin-org.gpg
-sudo sh -c 'echo "deb [signed-by=/usr/share/keyrings/packages-pgadmin-org.gpg] https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/$(lsb_release -cs) pgadmin4 main" > /etc/apt/sources.list.d/pgadmin4.list && apt update'
-sudo apt install pgadmin4-desktop
+log "Installing Curl"
+if ! is_package_installed curl; then
+    sudo apt install -y curl | tee -a "$log_file"
+else
+    log "Curl is already installed"
+fi
 
 
-# docker and docker-compose
-sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-apt-cache policy docker-ce
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
-sudo systemctl status docker
-
-
-# install safeeyes
-sudo add-apt-repository ppa:slgobinath/safeeyes
-sudo apt update
-sudo apt install safeeyes
+log "Installing NodeJS"
+if ! is_package_installed nodejs; then
+	sudo apt-get update && sudo apt-get install -y ca-certificates gnupg
+	curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+	NODE_MAJOR=20
+	echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
+	sudo apt-get update && sudo apt-get install nodejs -y
+else
+    log "NodeJS is already installed"
+fi
+log "Setup completed successfully. Check $log_file for details."
