@@ -119,4 +119,34 @@ if ! is_package_installed nodejs; then
 else
     log "NodeJS is already installed"
 fi
+
+log "Installing GNOME Tweaks"
+if ! is_package_installed gnome-tweaks; then
+    sudo apt install -y gnome-tweaks | tee -a "$log_file"
+else
+    log "GNOME Tweaks is already installed"
+fi
+
+
+log "Installing GNOME Shell Extensions"
+if ! is_package_installed gnome-extensions; then
+    sudo apt install -y gnome-shell-extensions | tee -a "$log_file"
+else
+    log "GNOME Shell Extensions is already installed"
+fi
+
+
+log "Installing pip3 % python dev tools"
+if ! is_package_installed pip3; then
+    sudo apt install -y python3-pip | tee -a "$log_file"
+    sudo apt install -y python3-dev build-essential python3-django  | tee -a "$log_file"
+else
+    log "pip3 is already installed"
+fi
+
+log "Installing psycopg2 binary"
+pip3 install psycopg2-binary | tee -a "$log_file"
+
+
+
 log "Setup completed successfully. Check $log_file for details."
