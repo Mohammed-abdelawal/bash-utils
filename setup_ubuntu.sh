@@ -148,5 +148,8 @@ log "Installing psycopg2 binary"
 pip3 install psycopg2-binary | tee -a "$log_file"
 
 
+# my favorite wallpaper changerpyD
+sudo apt update && sudo apt install variety
+
 
 log "Setup completed successfully. Check $log_file for details."
