@@ -149,7 +149,14 @@ pip3 install psycopg2-binary | tee -a "$log_file"
 
 
 # my favorite wallpaper changerpyD
-sudo apt update && sudo apt install variety
-
+log "Adding repository for Variety"
+if ! is_package_installed variety; then
+    sudo add-apt-repository -y ppa:variety/stable | tee -a "$log_file"
+    log "Updating package list"
+    sudo apt update | tee -a "$log_file"
+    install_package "variety"
+else
+    log "Variety is already installed"
+fi
 
 log "Setup completed successfully. Check $log_file for details."
